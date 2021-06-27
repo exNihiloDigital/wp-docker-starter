@@ -4,7 +4,7 @@ services:
   db:
     image: mariadb:10.5.8
     restart: always
-    container_name: database
+    container_name: database_SITENAME
     environment:
       # Has to be included to auto-mount sql from /docker-entrypoint-initdb.d/
       MYSQL_DATABASE: wordpress
@@ -19,7 +19,7 @@ services:
   adminer:
     image: adminer:4.8.0
     restart: always
-    container_name: adminer
+    container_name: adminer_SITENAME
     depends_on:
       - db
     ports:
@@ -30,8 +30,9 @@ services:
     depends_on:
       - db
     restart: always
-    container_name: wordpress
+    container_name: wordpress_SITENAME
     environment:
+      - "VIRTUAL_HOST=wptest.rogo.test"
       # if omitted will default to 'wordpress'
       WORDPRESS_DB_NAME: wordpress
       # Auto connect wordpress to our DB container
@@ -52,7 +53,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: nginx
+    container_name: nginx_SITENAME
     restart: always
     volumes:
       - ./nginx-init:/etc/nginx/conf.d
