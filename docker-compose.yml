@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.5.8
+    restart: always
+    container_name: database
+    environment:
+      # Has to be included to auto-mount sql from /docker-entrypoint-initdb.d/
+      MYSQL_DATABASE: wordpress
+      # Superadmin username = root
+      MYSQL_ROOT_PASSWORD: default
+    volumes:
+      # Mount DB data internally, available via adminer/phpMyAdmin/etc
+      - db-data:/var/lib/mysql
+      # Auto import default WP dump, will only be run on the first init
+      - ./db-init/wordpress-port-8080.sql.gz:/docker-entrypoint-initdb.d/wordpress-port-8080.sql.gz
+
+  adminer:
+    image: adminer:4.8.0
+    restart: always
+    container_name: adminer
+    depends_on:
+      - db
+    ports:
+      - 9000:8080
+
+  wordpress:
+    image: wordpress:php7.4-fpm-alpine
+    depends_on:
+      - db
+    restart: always
+    container_name: wordpress
+    environment:
+      # if omitted will default to 'wordpress'
+      WORDPRESS_DB_NAME: wordpress
+      # Auto connect wordpress to our DB container
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: root
+      # CHANGE IN PRODUCTION
+      WORDPRESS_DB_PASSWORD: default
+      # if omitted will default to wp_debug = false
+      WORDPRESS_DEBUG: 1
+    # ports:
+      # WP becomes available via http://localhost:8000. If you change this port, you also have to change it in the initial wordpress.sql
+      # - 8000:80
+    volumes:
+      # Mount folder on local HDD. If mounting internally is preferred, remove './' from path, and remove 'wp' from volumes at the end of this file.
+      - ./wp:/var/www/html/
+      # Automate php directives by including this:
+      - ./php-init/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    volumes:
+      - ./nginx-init:/etc/nginx/conf.d
+      - ./wp:/var/www/html
+    ports:
+      - "8080:80"
+
+volumes:
+  db-data:
+  wp:
